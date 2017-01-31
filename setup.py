@@ -1,0 +1,20 @@
+'''
+Simple e-commerce app
+'''
+
+import os
+from setuptools import setup, find_packages
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+with open(os.path.join(HERE, 'VERSION.txt')) as fp:
+    VERSION = fp.read().strip()
+setup(
+    name='zenmarket',
+    version=VERSION,
+    packages=find_packages(),
+    install_requires=['click', ],
+    extras_require={
+        'dev': ['ipdb', 'ipython', 'pytest', 'pytest-cov', 'pytest-pylint'],
+    },
+)
