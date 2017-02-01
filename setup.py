@@ -17,4 +17,8 @@ setup(
     extras_require={
         'dev': ['ipdb', 'ipython', 'pytest', 'pytest-cov', 'pytest-pylint'],
     },
+    entry_points='''
+        [console_scripts]
+        level1=zenmarket.level1:main
+    ''',
 )
