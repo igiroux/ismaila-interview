@@ -23,5 +23,6 @@ def main(infile: click.File, outfile: click.File) -> None:
     '''
     data = json.loads(infile.read().decode())
     response = price(data)
-    outfile.write(('%s\n' % json.dumps(response)).encode())
+    outfile.write(('%s\n' % json.dumps(
+        response, outfile, indent=2, sort_keys=True)).encode())
     outfile.flush()
