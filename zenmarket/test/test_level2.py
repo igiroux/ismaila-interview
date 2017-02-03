@@ -67,6 +67,40 @@ def fee_data_fixture():
     ]
 
 
+@pytest.fixture(name='invalid_fee_data', params=[
+    {
+        key: {
+            min_key: min_price,
+            max_key: max_price
+        },
+        price_key: price_value
+    }
+    for key, (min_key, min_price), (max_key, max_price), (price_key, price_value) in [
+        ("eligible_transaction_volume", ('min_price', 1000), ('max_price', 1000), ('price', 400))
+    ]
+])
+def invalid_fee_data_fixture(request):
+    '''
+    '''
+    return [
+        {
+            "eligible_transaction_volume": {
+                "min_price": 0,
+                "max_price": 1000
+            },
+            "price": 800
+        },
+        request.param,
+        {
+            "eligible_transaction_volume": {
+                "min_price": 2000,
+                "max_price": None
+            },
+            "price": 0
+        },
+    ]
+
+
 def test_fee_interpolation(random_prices, fee_function):
     '''
     Interpolation should work between bounds
@@ -90,3 +124,10 @@ def test_fee_data_as_cost_function(fee_data):
     x, fx = fee_data_to_cost_table(fee_data)
     assert tuple(x) == (1000, 2000, float('+Inf'))
     assert tuple(fx) == (800, 400, 0)
+
+
+def test_invalid_fee_data(invalid_fee_data):
+    '''
+    Test data format
+    '''
+    fee_data_to_cost_table(invalid_fee_data)
