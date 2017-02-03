@@ -6,6 +6,8 @@ import numbers
 from typing import List, Tuple, NewType
 import bisect
 
+from zenmarket.algo import level1
+
 # pylint: disable=C0103
 
 Price = NewType('Price', numbers.Number)
@@ -92,3 +94,13 @@ def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
     ]
     fees = [cost for _, _, cost in iter_price_info()]
     return prices, fees
+
+
+def price_plus_fees(data: dict) -> dict:
+    '''
+    '''
+    result = level1.price(data)
+    cost_function = fee_data_to_cost_table(data["delivery_fees"])
+    for cart in result['carts']:
+        cart['total'] = delivery_fees(cart['total'], cost_function)
+    return result
