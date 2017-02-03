@@ -1,3 +1,4 @@
+
 '''
 Level 2 costing: Compute delivery fees
 '''
@@ -86,7 +87,7 @@ def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
             else:
                 yield min_price, max_price, cost
     prices = [
-        [max_price, float('+Inf')][int(max_price is not None)]
+        [max_price, float('+Inf')][max_price is None]
         for _, max_price, _ in iter_price_info()
     ]
     fees = [cost for _, _, cost in iter_price_info()]
