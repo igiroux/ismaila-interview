@@ -13,7 +13,7 @@ setup(
     name='zenmarket',
     version=VERSION,
     packages=find_packages(),
-    install_requires=['click', ],
+    install_requires=['click', 'colander', 'aiohttp'],
     extras_require={
         'dev': ['ipdb', 'ipython', 'pytest', 'pytest-cov', 'pytest-pylint'],
     },
