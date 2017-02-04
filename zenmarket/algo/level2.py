@@ -93,6 +93,9 @@ def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
         for _, max_price, _ in iter_price_info()
     ]
     fees = [cost for _, _, cost in iter_price_info()]
+    sorted_data = sorted(zip(prices, fees), key=lambda z: z[0])
+    prices = [x for x, _ in sorted_data]
+    fees = [y for _, y in sorted_data]
     return prices, fees
 
 
