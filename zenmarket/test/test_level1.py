@@ -198,7 +198,8 @@ def _test_plain_response_format(response):
 
 def test_simple_article_cart(simple_cart):
     '''
-    Unique article price returns the price of the article
+    One cart price
+    :returns the price of the article
     '''
     total_price, data = simple_cart
     resp = price(data)
