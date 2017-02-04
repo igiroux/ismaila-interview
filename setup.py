@@ -21,5 +21,6 @@ setup(
         [console_scripts]
         level1=zenmarket.level1:main
         level2=zenmarket.level2:main
+        level3=zenmarket.level3:main
     ''',
 )
