@@ -5,7 +5,9 @@ from random import randrange
 
 import pytest
 
-from zenmarket.algo.level2 import delivery_fees, fee_data_to_cost_table
+from zenmarket.algo.level2 import (
+    interpolate_fees, fee_data_to_cost_table,
+    DeliveryFeeKeyError, DeliveryFeeValueError)
 
 
 @pytest.fixture(name='fee_function')
@@ -34,7 +36,7 @@ def random_prices_fixture(request):
     Random price fixture
     '''
     prices, fee = request.param
-    return ((price, price + fee) for price in prices)
+    return ((price, fee) for price in prices)
 
 
 @pytest.fixture(name='fee_data')
@@ -68,21 +70,47 @@ def fee_data_fixture():
 
 
 @pytest.fixture(name='invalid_fee_data', params=[
-    {
+    ({
         key: {
-            min_key: min_price,
-            max_key: max_price
+            min_k: min_v,
+            max_k: max_v
         },
         price_key: price_value
-    }
-    for key, (min_key, min_price), (max_key, max_price), (price_key, price_value) in [
-        ("eligible_transaction_volume", ('min_price', 1000), ('max_price', 1000), ('price', 400))
+    }, exc)
+    for key, (min_k, min_v), (max_k, max_v), (price_key, price_value), exc in [
+        (
+            "error_here",
+            ('min_price', 1000), ('max_price', 1000), ('price', 400),
+            DeliveryFeeKeyError
+        ),
+        (
+            "eligible_transaction_volume",
+            ('error_here', 1000), ('max_price', 1000), ('price', 400),
+            DeliveryFeeKeyError
+        ),
+        (
+            "eligible_transaction_volume",
+            ('min_price', 1000), ('error_here', 1000), ('price', 400),
+            DeliveryFeeKeyError
+        ),
+        (
+            "eligible_transaction_volume",
+            ('min_price', 1000), ('max_price', 1000), ('error_here', 400),
+            DeliveryFeeKeyError
+        ),
+        (
+            "eligible_transaction_volume",
+            ('min_price', 'error_here'), ('max_price', 1000), ('price', 400),
+            DeliveryFeeValueError
+        ),
     ]
 ])
 def invalid_fee_data_fixture(request):
     '''
+    Invalid data fixture raises exception
     '''
-    return [
+    fee_data_elem, exception = request.param
+    return exception, [
         {
             "eligible_transaction_volume": {
                 "min_price": 0,
@@ -90,7 +118,7 @@ def invalid_fee_data_fixture(request):
             },
             "price": 800
         },
-        request.param,
+        fee_data_elem,
         {
             "eligible_transaction_volume": {
                 "min_price": 2000,
@@ -106,8 +134,8 @@ def test_fee_interpolation(random_prices, fee_function):
     Interpolation should work between bounds
     '''
     sample = random_prices
-    for price, expected_cost in sample:
-        assert delivery_fees(price, fee_function) == expected_cost
+    for price, expected_fee in sample:
+        assert interpolate_fees(price, fee_function) == expected_fee
 
 
 def test_fee_function_bounds(fee_function):
@@ -117,17 +145,22 @@ def test_fee_function_bounds(fee_function):
     prices = [0, 1000, 2000]
     fees = [800, 400, 0]
     for price, fee in zip(prices, fees):
-        assert delivery_fees(price, fee_function) == price + fee
+        assert interpolate_fees(price, fee_function) == fee
 
 
 def test_fee_data_as_cost_function(fee_data):
-    x, fx = fee_data_to_cost_table(fee_data)
-    assert tuple(x) == (1000, 2000, float('+Inf'))
-    assert tuple(fx) == (800, 400, 0)
+    '''
+    cost function generator should generate expected abscissa and ordinate
+    '''
+    prices, fees = fee_data_to_cost_table(fee_data)
+    assert tuple(prices) == (1000, 2000, float('+Inf'))
+    assert tuple(fees) == (800, 400, 0)
 
 
 def test_invalid_fee_data(invalid_fee_data):
     '''
-    Test data format
+    Invalid data should raise proper exception
     '''
-    fee_data_to_cost_table(invalid_fee_data)
+    exception, data = invalid_fee_data
+    with pytest.raises(exception):
+        fee_data_to_cost_table(data)

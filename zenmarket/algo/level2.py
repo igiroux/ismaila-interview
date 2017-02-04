@@ -28,12 +28,12 @@ class DeliveryFeeValueError(ValueError):
     pass
 
 
-def delivery_fees(price: Price, cost_function: PriceRange):
+def interpolate_fees(price: Price, cost_function: PriceRange):
     '''
     :returns
     '''
     x, fx = cost_function
-    return price + fx[bisect.bisect_right(x, price)]
+    return fx[bisect.bisect_right(x, price)]
 
 
 def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
@@ -96,11 +96,24 @@ def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
     return prices, fees
 
 
-def price_plus_fees(data: dict) -> dict:
+def price(data: dict) -> dict:
     '''
+    :returns {'carts': [{'id': <cart_id>, 'total': <cart_price>}]}
     '''
     result = level1.price(data)
-    cost_function = fee_data_to_cost_table(data["delivery_fees"])
-    for cart in result['carts']:
-        cart['total'] = delivery_fees(cart['total'], cost_function)
-    return result
+    cost_function = fee_data_to_cost_table(data['delivery_fees'])
+    return {'carts': [
+        plus_fees(cart, cost_function)
+        for cart in result['carts']
+    ]}
+
+
+def plus_fees(cart: dict, cost_function: PriceRange):
+    '''
+    :returns: price + fees for a given
+    '''
+    total = cart['total']
+    return {
+        'id': cart['id'],
+        'total': total + interpolate_fees(total, cost_function)
+    }
