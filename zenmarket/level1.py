@@ -7,7 +7,7 @@ import json
 
 import click
 
-from zenmarket.algo.level1 import price
+from zenmarket.algo import level1
 
 
 @click.command()
@@ -22,7 +22,7 @@ def main(infile: click.File, outfile: click.File) -> None:
     cat data.json | level1 - - > outfile.json
     '''
     data = json.loads(infile.read().decode())
-    response = price(data)
+    response = level1.price(data)
     outfile.write(('%s\n' % json.dumps(
         response, outfile, indent=2, sort_keys=True)).encode())
     outfile.flush()
