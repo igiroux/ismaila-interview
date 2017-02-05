@@ -101,3 +101,30 @@ class L1InputDataDesc(MappingSchema):
     '''
     articles = Articles()
     carts = Carts()
+
+
+class CartTotal(MappingSchema):
+    '''
+    {'id': <cart_id>, 'total': <cart_total>}
+    '''
+    cart_id = SchemaNode(Int(), name='id')
+    total = SchemaNode(Int())
+
+
+class CartTotals(SequenceSchema):
+    '''
+    [
+        {'id': <cart_id>, 'total': <cart_total>},
+    ]
+    '''
+    carts = CartTotal()
+
+
+class ResponseDesc(MappingSchema):
+    '''
+    {'carts': [
+        {'id': <cart_id>, 'total': <cart_total>},
+
+    ]}
+    '''
+    carts = CartTotals(missing=[])

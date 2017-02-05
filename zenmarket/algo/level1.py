@@ -2,7 +2,7 @@
 This is simple cart pricing module
 '''
 import colander
-from zenmarket.model import L1InputDataDesc
+from zenmarket.model import L1InputDataDesc, ResponseDesc
 
 
 class UndefinedArticleReference(Exception):
@@ -111,6 +111,7 @@ def price(data: dict) -> dict:
         return {'carts': []}
 
     schema = L1InputDataDesc()
+    response_schema = ResponseDesc()
     try:
         data = schema.deserialize(data)
     except colander.Invalid as exc:
@@ -118,7 +119,7 @@ def price(data: dict) -> dict:
     else:
         articles = {article['id']: article for article in data["articles"]}
         carts = data["carts"]
-        return {'carts': [
+        return response_schema.deserialize({'carts': [
             cart_price(cart, articles)
             for cart in carts
-        ]}
+        ]})
