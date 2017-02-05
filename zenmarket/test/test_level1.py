@@ -5,7 +5,8 @@ Level 1 pricing test
 # pylint: disable=missing-docstring
 
 
-from zenmarket.algo.level1 import price
+from zenmarket.algo.level1 import (
+    price, BadDataFormat, UndefinedArticleReference)
 import pytest
 
 
@@ -152,6 +153,19 @@ def corrupted_input_data_fixture(request):
     return request.param
 
 
+@pytest.fixture(scope='module', name='bad_article_ref_input', params=[
+    {'articles': [{"id": 4, "name": "Egg", "price": 1000}], 'carts': [
+        {'id': 4, 'items': [{"article_id": 25, "quantity": 2}]},
+    ]},  # article_id 25 is not defined
+])
+def bad_ref_article_fixture(request):
+    '''
+    input data with undefined article
+    '''
+
+    return request.param
+
+
 def _test_response_format(response):
     assert response and isinstance(response, dict)
     assert "carts" in response
@@ -181,7 +195,7 @@ def test_price_invalid_data(invalid_data):
     """
     Invalid data raises ValueError
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(BadDataFormat):
         price(invalid_data)
 
 
@@ -227,5 +241,13 @@ def test_price_corrupted_data(corrupted_data):
     """
     Invalid data raises ValueError
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(BadDataFormat):
         price(corrupted_data)
+
+
+def test_price_bad_article_ref(bad_article_ref_input):
+    """
+    Invalid data raises ValueError
+    """
+    with pytest.raises(UndefinedArticleReference):
+        price(bad_article_ref_input)

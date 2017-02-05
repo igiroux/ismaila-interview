@@ -1,6 +1,22 @@
 '''
 This is simple cart pricing module
 '''
+import colander
+from zenmarket.model import L1InputDataDesc
+
+
+class UndefinedArticleReference(Exception):
+    '''
+    Exception raised when a reference to article does not exist
+    '''
+    pass
+
+
+class BadDataFormat(Exception):
+    '''
+    Exception raised when input data can't be deserialized
+    '''
+    pass
 
 
 def cart_price(cart: dict, articles: dict) -> dict:
@@ -17,31 +33,27 @@ def cart_price(cart: dict, articles: dict) -> dict:
         Generator that yields for each cart item (<cart_id>, <cart_item_price>)
         '''
         for item in items:
+            article_id = item['article_id']
+            quantity = item['quantity']
             try:
-                item_price = articles[item['article_id']]['price']
-                item_quantity = item['quantity']
+                item_price = articles[article_id]['price']
             except KeyError:
-                raise ValueError(
-                    'Cart item price could not be found {}'.format(item))
+                raise UndefinedArticleReference(
+                    'Article(id={}) is not defined'.format(article_id))
             else:
-                yield item_quantity, item_price
+                yield quantity, item_price
 
-    try:
-        items = cart['items']
-        cart_id = cart['id']
-    except KeyError:
-        raise ValueError(
-            'Wrong cart fmt %r. Expected {"id": <id>, "items": []}' % cart)
-    else:
-        if not items:
-            return {'id': cart_id, 'total': 0}
+    items = cart['items']
+    cart_id = cart['id']
+    if not items:
+        return {'id': cart_id, 'total': 0}
 
-        return {
-            'id': cart_id,
-            'total': sum(
-                quantity * price
-                for quantity, price in iter_cart_items_prices(items, articles))
-        }
+    return {
+        'id': cart_id,
+        'total': sum(
+            quantity * price
+            for quantity, price in iter_cart_items_prices(items, articles))
+    }
 
 
 def price(data: dict) -> dict:
@@ -50,6 +62,7 @@ def price(data: dict) -> dict:
 
     :param data dict: {'articles': [...], 'carts': [...]}
     :returns {'carts': [{'id': <id>, 'total': <total>}, ...]}
+    :raises BadDataFormat
     E.g.:
 
     >>> data = {
@@ -97,15 +110,14 @@ def price(data: dict) -> dict:
     if not data:
         return {'carts': []}
 
+    schema = L1InputDataDesc()
     try:
-        articles = {article['id']: article for article in data["articles"]}
-        carts = list(data["carts"])
-    except KeyError:
-        raise ValueError('Invalid input data {}. \n'.format(data))
-    except TypeError:
-        raise ValueError(
-            'Invalid input value for key "carts". Expected Iterable')
+        data = schema.deserialize(data)
+    except colander.Invalid as exc:
+        raise BadDataFormat(exc.msg)
     else:
+        articles = {article['id']: article for article in data["articles"]}
+        carts = data["carts"]
         return {'carts': [
             cart_price(cart, articles)
             for cart in carts
