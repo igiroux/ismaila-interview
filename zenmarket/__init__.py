@@ -8,6 +8,7 @@ from typing import Callable, NewType
 import click
 
 from zenmarket.algo import level1 as l1, level2 as l2, level3 as l3
+from zenmarket import app
 
 
 # pylint: disable=C0103,W0702
@@ -77,3 +78,17 @@ def level3(infile: click.File, outfile: click.File) -> None:
     cat data.json | zm-cli level3 - - > outfile.json
     '''
     return pricing(infile, outfile, l3.price)
+
+
+@cli.command()
+@click.argument('host', type=str, default='127.0.0.1')
+@click.argument('port', type=int, default=8888)
+def serve(host: str, port: int):
+    '''
+    run zenmarket as webserver on port <port>
+
+    usage:
+
+    zenmarket serve --port 8080
+    '''
+    app.run_app(host=host, port=port)
