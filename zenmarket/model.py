@@ -3,6 +3,7 @@ This module is devised to describe input data using colander schema.
 That is supposed to ease data validation and streamline algorithms.
 '''
 
+import colander
 from colander import SchemaNode, Int, String, SequenceSchema, MappingSchema
 
 
@@ -108,7 +109,7 @@ class CartTotal(MappingSchema):
     {'id': <cart_id>, 'total': <cart_total>}
     '''
     cart_id = SchemaNode(Int(), name='id')
-    total = SchemaNode(Int())
+    total = SchemaNode(Int(), validator=colander.Range(min=0))
 
 
 class CartTotals(SequenceSchema):
@@ -128,3 +129,91 @@ class ResponseDesc(MappingSchema):
     ]}
     '''
     carts = CartTotals(missing=[])
+
+
+class EligibleTransactionVolume(MappingSchema):
+    '''
+    {
+        "min_price": 0,
+        "max_price": 1000
+    }
+    '''
+    min_price = SchemaNode(Int(), validator=colander.Range(min=0))
+    max_price = SchemaNode(
+        Int(),
+        validator=colander.Any(colander.OneOf([None]), colander.Range(min=0)))
+
+
+class DeliveryFee(MappingSchema):
+    '''
+    {
+        "eligible_transaction_volume": {
+            "min_price": 0,
+            "max_price": 1000
+        },
+        "price": 800
+    }
+    '''
+    eligible_transaction_volume = EligibleTransactionVolume()
+    price = SchemaNode(Int(), validator=colander.Range(min=0))
+
+
+class DeliveryFees(SequenceSchema):
+    '''
+    [
+        {
+            "eligible_transaction_volume": {
+            "min_price": 0,
+            "max_price": 1000
+            },
+            "price": 800
+        },
+        {
+            "eligible_transaction_volume": {
+            "min_price": 1000,
+            "max_price": 2000
+            },
+            "price": 400
+        },
+        {
+            "eligible_transaction_volume": {
+            "min_price": 2000,
+            "max_price": null
+            },
+            "price": 0
+        },
+    ]
+    '''
+    delivery_fee = DeliveryFee()
+
+
+class L2InputDataDesc(L1InputDataDesc):
+    '''
+    Level2 Input data schema description
+    ,
+    "delivery_fees": [
+        {
+            "eligible_transaction_volume": {
+            "min_price": 0,
+            "max_price": 1000
+            },
+            "price": 800
+        },
+        {
+            "eligible_transaction_volume": {
+            "min_price": 1000,
+            "max_price": 2000
+            },
+            "price": 400
+        },
+        {
+            "eligible_transaction_volume": {
+            "min_price": 2000,
+            "max_price": null
+            },
+            "price": 0
+        }
+    ]
+
+    '''
+    delivery_fees = DeliveryFees()

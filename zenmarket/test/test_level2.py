@@ -5,9 +5,9 @@ from random import randrange
 
 import pytest
 
+# from zenmarket.algo.level1 import BadDataFormat
 from zenmarket.algo.level2 import (
-    interpolate_fees, fee_data_to_cost_table,
-    DeliveryFeeKeyError, DeliveryFeeValueError)
+    interpolate_fees, fee_data_to_cost_table, PriceRangeError)
 
 
 @pytest.fixture(name='fee_function')
@@ -71,38 +71,17 @@ def fee_data_fixture():
 
 @pytest.fixture(name='invalid_fee_data', params=[
     ({
-        key: {
-            min_k: min_v,
-            max_k: max_v
+        "eligible_transaction_volume": {
+            'min_price': min_price,
+            'max_price': max_price
         },
-        price_key: price_value
+        'price': fee
     }, exc)
-    for key, (min_k, min_v), (max_k, max_v), (price_key, price_value), exc in [
-        (
-            "error_here",
-            ('min_price', 1000), ('max_price', 1000), ('price', 400),
-            DeliveryFeeKeyError
-        ),
-        (
-            "eligible_transaction_volume",
-            ('error_here', 1000), ('max_price', 1000), ('price', 400),
-            DeliveryFeeKeyError
-        ),
-        (
-            "eligible_transaction_volume",
-            ('min_price', 1000), ('error_here', 1000), ('price', 400),
-            DeliveryFeeKeyError
-        ),
-        (
-            "eligible_transaction_volume",
-            ('min_price', 1000), ('max_price', 1000), ('error_here', 400),
-            DeliveryFeeKeyError
-        ),
-        (
-            "eligible_transaction_volume",
-            ('min_price', 'error_here'), ('max_price', 1000), ('price', 400),
-            DeliveryFeeValueError
-        ),
+    for min_price, max_price, fee, exc in [
+        # (-1000, 2000, 400, BadDataFormat),
+        # (1000, -2000, 400, BadDataFormat),
+        # (1000, 2000, -400, BadDataFormat),
+        (2000, 1000, 400, PriceRangeError),
     ]
 ])
 def invalid_fee_data_fixture(request):
