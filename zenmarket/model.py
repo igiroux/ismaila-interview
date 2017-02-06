@@ -189,9 +189,7 @@ class DeliveryFees(SequenceSchema):
 
 class L2InputDataDesc(L1InputDataDesc):
     '''
-    Level2 Input data schema description
-    ,
-    "delivery_fees": [
+    L1InputDataDesc + {"delivery_fees": [
         {
             "eligible_transaction_volume": {
             "min_price": 0,
@@ -213,7 +211,42 @@ class L2InputDataDesc(L1InputDataDesc):
             },
             "price": 0
         }
-    ]
+    ]}
 
     '''
     delivery_fees = DeliveryFees()
+
+
+class Discount(MappingSchema):
+    '''
+    {"article_id": 20, "type": "amount", "value": 20}
+    '''
+    article_id = SchemaNode(Int())
+    discount_type = SchemaNode(
+        String(),
+        validator=colander.OneOf({'amount', 'percentage'}),
+        name='type')
+
+    value = SchemaNode(Int(), validator=colander.Range(min=0))
+
+
+class Discounts(SequenceSchema):
+    '''
+    Sequence of discounts
+    [
+        {"article_id": 20, "type": "amount", "value": 20},
+        {"article_id": 30, "type": "percentage", "value": 10},
+    ]
+    '''
+    discount = Discount()
+
+
+
+class L3InputDataDesc(L2InputDataDesc):
+    '''
+    L2InputDataDesc + {'discounts': [
+        {"article_id": 20, "type": "amount", "value": 20},
+        {"article_id": 30, "type": "percentage", "value": 10},
+    ]}
+    '''
+    discounts = Discounts()

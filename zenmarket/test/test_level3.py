@@ -92,30 +92,84 @@ def simple_cart_input_data_fixture(request):
     }
 
 
-def _test_response_format(response):
-    assert response and isinstance(response, dict)
-    assert "carts" in response
-
-
-def _test_plain_response_format(response):
-    _test_response_format(response)
-    assert response["carts"]
-    assert isinstance(response["carts"], (list, tuple))
-    for cart in response["carts"]:
-        assert isinstance(cart, dict)
-        assert cart
-        assert "id" in cart
-        assert "total" in cart
-
-
 def test_discounted_simple_cart(simple_cart):
     '''
     One cart price returns the price of the article
     '''
     total_price, data = simple_cart
     resp = level3.price(data)
-    _test_plain_response_format(resp)
     assert len(resp["carts"]) == 1
     cart = resp["carts"][0]
     assert cart["id"] == 10
     assert cart["total"] == total_price, data['carts']
+
+
+@pytest.fixture(name='sample_l3_data', params=[
+    ({"id": 3, "items": [
+        {"article_id": 5, "quantity": 1},
+        {"article_id": 6, "quantity": 1},
+    ]}, 1798),
+    ({"id": 1, "items": [
+        {"article_id": 1, "quantity": 6},
+        {"article_id": 2, "quantity": 2},
+        {"article_id": 4, "quantity": 1},
+    ]}, 2350)
+])
+def simple_l3_cart_fixture(request):
+    '''
+    Complete level3 input data
+    '''
+    cart, total = request.param
+    return cart, total, {
+        "articles": [
+            {"id": 1, "name": "water", "price": 100},
+            {"id": 2, "name": "honey", "price": 200},
+            {"id": 4, "name": "tea", "price": 1000},
+            {"id": 5, "name": "ketchup", "price": 999},
+            {"id": 6, "name": "mayonnaise", "price": 999},
+        ],
+        "carts": [cart],
+        "delivery_fees": [
+            {
+                "eligible_transaction_volume": {
+                    "min_price": 0,
+                    "max_price": 1000
+                },
+                "price": 800
+            },
+            {
+                "eligible_transaction_volume": {
+                    "min_price": 1000,
+                    "max_price": 2000
+                },
+                "price": 400
+            },
+            {
+                "eligible_transaction_volume": {
+                    "min_price": 2000,
+                    "max_price": None
+                },
+                "price": 0
+            },
+        ],
+        "discounts": [
+            {"article_id": 2, "type": "amount", "value": 25},
+            {"article_id": 5, "type": "percentage", "value": 30},
+            {"article_id": 6, "type": "percentage", "value": 30},
+        ],
+    }
+
+
+def test_price(sample_l3_data):
+    '''
+    level3.price(sample_l3_data[-1]) == {'carts': [
+        {"id": 1, "total": 2350},
+        {"id": 2, "total": 1775},
+    ]}
+    '''
+    input_cart, total, data = sample_l3_data
+    response = level3.price(data)
+    assert len(response['carts']) == 1
+    cart = response['carts'][0]
+    assert cart['id'] == input_cart['id']
+    assert cart['total'] == total

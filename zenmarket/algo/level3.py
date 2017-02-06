@@ -4,7 +4,9 @@ This is simple cart pricing module
 from operator import itemgetter
 from typing import Callable, NewType
 
-from zenmarket.algo import level2
+from zenmarket.algo import level2, level1
+from zenmarket import model
+import colander
 
 
 def cart_price(cart: dict, articles: dict, discounts: dict) -> dict:
@@ -21,37 +23,34 @@ def cart_price(cart: dict, articles: dict, discounts: dict) -> dict:
         Generator that yields for each cart item (<cart_id>, <cart_item_price>)
         '''
         for item in items:
+            article_id = item['article_id']
             try:
-                item_price = articles[item['article_id']]['price']
-                item_quantity = item['quantity']
-                item_discount_func = discounts.get(
-                    item['article_id'], lambda aprice: aprice)
+                aprice = articles[article_id]['price']
             except KeyError:
-                raise ValueError(
-                    'Cart item price could not be found {}'.format(item))
+                raise level1.UndefinedArticleReference(
+                    'Article(id={}) is not defined'.format(article_id))
             else:
-                yield item_quantity, item_price, item_discount_func
+                quantity = item['quantity']
+                discount_func = discounts.get(article_id, lambda value: value)
+                yield quantity, aprice, discount_func
 
     try:
-        items = cart['items']
-        cart_id = cart['id']
-    except KeyError:
-        raise ValueError(
-            'Wrong cart fmt %r. Expected {"id": <id>, "items": []}' % cart)
+        cart = model.Cart().deserialize(cart)
+    except colander.Invalid as exc:
+        raise level1.BadDataFormat(exc.msg)
     else:
-        if not items:
-            return {'id': cart_id, 'total': 0}
+        if not cart['items']:
+            return {'id': cart['id'], 'total': 0}
 
-        resp = {
-            'id': cart_id,
+        return {
+            'id': cart['id'],
             'total': sum(
                 quantity * discount_fun(price)
                 for quantity, price, discount_fun in iter_cart_items_prices(
-                    items, articles, discounts
+                    cart['items'], articles, discounts
                 )
             )
         }
-        return resp
 
 
 # pylint: disable=C0103
@@ -62,6 +61,9 @@ def discount_as_func(discount_type: str, discount_value: int) -> DiscountFun:
     '''
     :returns a discount function which applies a discount to a price
     '''
+    if discount_type == 'percentage' and discount_value > 100:
+        raise level1.BadDataFormat('discount.percentage > 100')
+
     switch = {
         "amount": lambda aprice: aprice - discount_value,
         "percentage": lambda aprice: aprice * (100 - discount_value) // 100
@@ -183,21 +185,17 @@ def price(data: dict) -> dict:
     article_id = itemgetter('article_id')
 
     try:
+        data = model.L3InputDataDesc().deserialize(data)
+    except colander.Invalid as exc:
+        raise level1.BadDataFormat(exc.msg)
+    else:
         articles = {article['id']: article for article in data["articles"]}
-        carts = iter(data["carts"])
         discounts = {
             article_id(discount): discount_as_func(*params(discount))
-            for discount in iter(data['discounts'])
+            for discount in data['discounts']
         }
-        fees_data = data['delivery_fees']
-    except KeyError:
-        raise ValueError('Invalid input data {}. \n'.format(data))
-    except TypeError:
-        raise ValueError(
-            'Invalid input value for key "carts". Expected Iterable')
-    else:
-        cost_func = level2.fee_data_to_cost_table(fees_data)
+        cost_func = level2.fee_data_to_cost_table(data['delivery_fees'])
         return {'carts': [
             level2.plus_fees(cart_price(cart, articles, discounts), cost_func)
-            for cart in carts
+            for cart in data["carts"]
         ]}
