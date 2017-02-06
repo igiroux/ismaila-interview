@@ -22,14 +22,14 @@ This test is shamelessly inspired by the drivy tech interview, which I found rea
 
 ## Test solution
 
-### Installation in development mode
+Clone this repository, create a Python > 3.4 virtualenv and have fun!
 
-Just create a Python > 3.4 virtualenv.
+### Installation in development mode
 
 ```bash
 virtualenv --python=$(which python3) venv
 source venv/bin/activate
-pip install -r requirements-dev
+pip install -r requirements-dev.txt
 ```
 
 ### Run tests
@@ -61,5 +61,6 @@ zm-cli server  # run zenmarket server on default port 8888
 
 ```bash
 # Session #2
-curl -F data=@level1/data.json -w '\n' 'http://127.0.0.1:8888/api/level1/price' -H 'ContentType application/json'
+curl -F data=@level1/data.json -w '\n' \
+    'http://127.0.0.1:8888/api/level1/price' -H 'ContentType application/json'
 ```
