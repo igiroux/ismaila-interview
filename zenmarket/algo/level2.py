@@ -83,7 +83,7 @@ def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
         for info in fee_data:
             price_range = info['eligible_transaction_volume']
             min_price = price_range['min_price']
-            max_price = price_range['max_price']
+            max_price = price_range['max_price'] or float('+Inf')
             cost = info['price']
             if min_price < max_price:
                 yield min_price, max_price, cost
@@ -116,7 +116,7 @@ def price(data: dict) -> dict:
         delivery_fees = data.pop('delivery_fees')
         result = level1.price(data)
         cost_function = fee_data_to_cost_table(delivery_fees)
-        return ResponseDesc().serialize({'carts': [
+        return ResponseDesc().deserialize({'carts': [
             plus_fees(cart, cost_function)
             for cart in result['carts']
         ]})

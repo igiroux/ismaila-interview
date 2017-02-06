@@ -140,7 +140,7 @@ class EligibleTransactionVolume(MappingSchema):
     '''
     min_price = SchemaNode(Int(), validator=colander.Range(min=0))
     max_price = SchemaNode(
-        Int(), missing=float('+Inf'),
+        Int(), missing=None,
         validator=colander.Any(colander.Range(min=0)))
 
 
