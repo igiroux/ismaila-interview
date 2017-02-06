@@ -5,7 +5,7 @@ from random import randrange
 
 import pytest
 
-# from zenmarket.algo.level1 import BadDataFormat
+from zenmarket.algo.level1 import BadDataFormat
 from zenmarket.algo.level2 import (
     interpolate_fees, fee_data_to_cost_table, PriceRangeError)
 
@@ -78,9 +78,9 @@ def fee_data_fixture():
         'price': fee
     }, exc)
     for min_price, max_price, fee, exc in [
-        # (-1000, 2000, 400, BadDataFormat),
-        # (1000, -2000, 400, BadDataFormat),
-        # (1000, 2000, -400, BadDataFormat),
+        (-1000, 2000, 400, BadDataFormat),
+        (1000, -2000, 400, BadDataFormat),
+        (1000, 2000, -400, BadDataFormat),
         (2000, 1000, 400, PriceRangeError),
     ]
 ])
