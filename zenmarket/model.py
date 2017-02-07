@@ -241,7 +241,6 @@ class Discounts(SequenceSchema):
     discount = Discount()
 
 
-
 class L3InputDataDesc(L2InputDataDesc):
     '''
     L2InputDataDesc + {'discounts': [
