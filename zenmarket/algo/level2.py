@@ -10,10 +10,9 @@ from collections import namedtuple
 import colander
 
 from zenmarket.algo import level1
-from zenmarket.model import (
-    L1InputDataDesc, DeliveryFees, ResponseDesc, L2InputDataDesc)
+from zenmarket.model import DeliveryFees, L2InputDataDesc
 
-# pylint: disable=C0103
+# pylint: disable=C0103,too-few-public-methods
 
 Price = NewType('Price', numbers.Number)
 PriceRange = Tuple[List[Price], List[Price]]
@@ -33,26 +32,16 @@ class InterpolationError(Exception):
     pass
 
 
-def interpolate_fees(aprice: Price, cost_function: PriceRange):
-    '''
-    :returns
-    '''
-    x, fx = cost_function
-    try:
-        value = fx[bisect.bisect_right(x, aprice)]
-    except:
-        raise InterpolationError('Unknown error')
-    else:
-        return value
-
-
 class L2CartProcessor:
     '''
+    Processing unit that compute cart price
     '''
+
     input_validator = L2InputDataDesc()
 
     class DeliveryFeeFunction(namedtuple('CostFunction', ['x', 'y'])):
         '''
+        Callable that interpolate cart delivery fees using y = f(x)
         '''
 
         def __call__(self, aprice):
@@ -146,78 +135,8 @@ class L2CartProcessor:
         ]})
 
 
-def fee_data_to_cost_table(fee_data: List[dict]) -> PriceRange:
-    '''
-    [
-        {
-          "eligible_transaction_volume": {
-            "min_price": 0,
-            "max_price": 1000
-          },
-          "price": 800
-        },
-        {
-          "eligible_transaction_volume": {
-            "min_price": 1000,
-            "max_price": 2000
-          },
-          "price": 400
-        },
-        {
-          "eligible_transaction_volume": {
-            "min_price": 2000,
-            "max_price": None
-          },
-          "price": 0
-        },
-    ]
-
-    :returns [
-        [1000, 2000, float('+Inf')],
-        [800, 400, 0],
-    ]
-    '''
-    def iter_price_info():
-        '''
-        Generator that yields price info
-        '''
-        for info in fee_data:
-            price_range = info['eligible_transaction_volume']
-            min_price = price_range['min_price']
-            max_price = price_range['max_price'] or float('+Inf')
-            cost = info['price']
-            if min_price < max_price:
-                yield min_price, max_price, cost
-            else:
-                raise PriceRangeError(
-                    'Bad price range (min_price, max_price): {}'
-                    .format((min_price, max_price)))
-    try:
-        fee_data = DeliveryFees().deserialize(fee_data)
-    except colander.Invalid as exc:
-        raise level1.BadDataFormat(exc.msg)
-    else:
-        sorted_data = sorted(
-            [(max_price, cost) for _, max_price, cost in iter_price_info()],
-            key=lambda z: z[0])
-        prices = [x for x, _ in sorted_data]
-        fees = [y for _, y in sorted_data]
-        return prices, fees
-
-
 def price(data: dict) -> dict:
     '''
     :returns {'carts': [{'id': <cart_id>, 'total': <cart_price>}]}
     '''
     return L2CartProcessor(data).price()
-
-
-def plus_fees(cart: dict, cost_function: PriceRange):
-    '''
-    :returns: price + fees for a given
-    '''
-    total = cart['total']
-    return {
-        'id': cart['id'],
-        'total': total + interpolate_fees(total, cost_function)
-    }

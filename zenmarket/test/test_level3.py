@@ -5,14 +5,6 @@ import pytest
 from zenmarket.algo import level3
 
 
-def test_discount():
-    '''
-    Test discounting
-    '''
-    assert level3.discount_as_func('amount', 10)(100) == 90
-    assert level3.discount_as_func('percentage', 10)(300) == 270
-
-
 @pytest.fixture(scope='module', name='simple_cart', params=[
     ([{"article_id": 4, "quantity": 1}], 1 * 1000 + 400),
     ([{"article_id": 4, "quantity": 2}], 2 * 1000 + 0),

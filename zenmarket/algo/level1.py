@@ -139,7 +139,7 @@ class L1CartProcessor:
 
     def price(self):
         '''
-        compute
+        :returns carts prices
         '''
         return self.output_validator.deserialize({'carts': [
             {'id': cart.id, 'total': cart.total()}

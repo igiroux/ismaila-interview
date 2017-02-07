@@ -179,7 +179,7 @@ def test_price_empty_dict():
     Empty dict should return empty response {"carts": []}
     """
 
-    resp = level1.L1CartProcessor({}).price()
+    resp = level1.price({})
     _test_response_format(resp)
     assert not resp["carts"], 'Empty dict should return empty {"carts": []}'
 
@@ -189,7 +189,7 @@ def test_price_valid_data(empty_data):
     Empty cart returns {"carts": []}
     """
 
-    resp = level1.L1CartProcessor(empty_data).price()
+    resp = level1.price(empty_data)
     _test_response_format(resp)
     assert not resp["carts"], 'Empty data should return {"carts": []}'
 
@@ -199,7 +199,7 @@ def test_price_invalid_data(invalid_data):
     Invalid data raises ValueError
     """
     with pytest.raises(level1.BadDataFormat):
-        level1.L1CartProcessor(invalid_data).price()
+        level1.price(invalid_data)
 
 
 def test_simple_article_cart(simple_cart):
@@ -208,7 +208,7 @@ def test_simple_article_cart(simple_cart):
     :returns the price of the article
     '''
     total_price, data = simple_cart
-    resp = level1.L1CartProcessor(data).price()
+    resp = level1.price(data)
     assert len(resp["carts"]) == 1
     cart = resp["carts"][0]
     assert cart["id"] == 10
@@ -220,7 +220,7 @@ def test_multi_article_cart(multi_cart):
     Unique article price returns the price of the article
     '''
     data, expected = multi_cart
-    resp = level1.L1CartProcessor(data).price()
+    resp = level1.price(data)
     assert len(resp["carts"]) == len(expected["carts"])
     for ref_cart, cart in zip(expected["carts"], resp["carts"]):
         assert cart['id'] == ref_cart['id']
@@ -232,7 +232,7 @@ def test_price_corrupted_data(corrupted_data):
     Invalid data raises ValueError
     """
     with pytest.raises(level1.BadDataFormat):
-        level1.L1CartProcessor(corrupted_data).price()
+        level1.price(corrupted_data)
 
 
 def test_price_bad_article_ref(bad_article_ref_input):
@@ -240,4 +240,4 @@ def test_price_bad_article_ref(bad_article_ref_input):
     Invalid data raises ValueError
     """
     with pytest.raises(level1.UndefinedArticleReference):
-        level1.L1CartProcessor(bad_article_ref_input).price()
+        level1.price(bad_article_ref_input)

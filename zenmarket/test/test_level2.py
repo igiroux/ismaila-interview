@@ -88,23 +88,29 @@ def invalid_fee_data_fixture(request):
     Invalid data fixture raises exception
     '''
     fee_data_elem, exception = request.param
-    return exception, [
-        {
-            "eligible_transaction_volume": {
-                "min_price": 0,
-                "max_price": 1000
+    return exception, {
+        'articles': [
+            {"id": 1, "name": "water", "price": 1000},
+        ],
+        'delivery_fees': [
+            {
+                "eligible_transaction_volume": {
+                    "min_price": 0,
+                    "max_price": 1000
+                },
+                "price": 800
             },
-            "price": 800
-        },
-        fee_data_elem,
-        {
-            "eligible_transaction_volume": {
-                "min_price": 2000,
-                "max_price": None
+            fee_data_elem,
+            {
+                "eligible_transaction_volume": {
+                    "min_price": 2000,
+                    "max_price": None
+                },
+                "price": 0
             },
-            "price": 0
-        },
-    ]
+        ],
+        'carts': [{'id': 100, 'items': [{'article_id': 1, 'quantity': 1000}]}]
+    }
 
 
 @pytest.fixture(name='simple_cart', params=[
@@ -167,8 +173,9 @@ def test_fee_interpolation(random_prices, fee_function):
     Interpolation should work between bounds
     '''
     sample = random_prices
+    interpolate = level2.L2CartProcessor.DeliveryFeeFunction(*fee_function)
     for price, expected_fee in sample:
-        assert level2.interpolate_fees(price, fee_function) == expected_fee
+        assert interpolate(price) == expected_fee
 
 
 def test_fee_function_bounds(fee_function):
@@ -177,17 +184,18 @@ def test_fee_function_bounds(fee_function):
     '''
     prices = [0, 1000, 2000]
     fees = [800, 400, 0]
+    interpolate = level2.L2CartProcessor.DeliveryFeeFunction(*fee_function)
     for aprice, fee in zip(prices, fees):
-        assert level2.interpolate_fees(aprice, fee_function) == fee
+        assert interpolate(aprice) == fee
 
 
 def test_fee_data_as_cost_function(fee_data):
     '''
     cost function generator should generate expected abscissa and ordinate
     '''
-    prices, fees = level2.fee_data_to_cost_table(fee_data)
-    assert tuple(prices) == (1000, 2000, float('+Inf'))
-    assert tuple(fees) == (800, 400, 0)
+    interp = level2.L2CartProcessor.DeliveryFeeFunction.from_list(fee_data)
+    assert tuple(interp.x) == (1000, 2000, float('+Inf'))
+    assert tuple(interp.y) == (800, 400, 0)
 
 
 def test_invalid_fee_data(invalid_fee_data):
@@ -196,7 +204,7 @@ def test_invalid_fee_data(invalid_fee_data):
     '''
     exception, data = invalid_fee_data
     with pytest.raises(exception):
-        level2.fee_data_to_cost_table(data)
+        level2.L2CartProcessor(data)
 
 
 def test_price(simple_cart):
@@ -209,26 +217,3 @@ def test_price(simple_cart):
     cart = resp["carts"][0]
     assert cart["id"] == cart_id
     assert cart["total"] == total
-
-
-@pytest.fixture(scope='module', name='cart_results', params=(
-    ([{'id': 7, 'total': randrange(0, 1000)} for _ in range(30)], 800),
-    ([{'id': 7, 'total': randrange(1000, 2000)} for _ in range(30)], 400),
-    ([{'id': 7, 'total': randrange(2000, 10000)} for _ in range(30)], 0),
-))
-def cart_price_plus_fees_fixture(request):
-    '''
-    Fixture that produces level1 cart price result
-    '''
-    return request.param
-
-
-def test_plus_fees(cart_results, fee_function):
-    '''
-    level2.plus_fee(cart, cost_function)
-    '''
-    carts, fee = cart_results
-    for cart in carts:
-        resp = level2.plus_fees(cart, fee_function)
-        assert resp['id'] == cart['id']
-        assert resp['total'] == cart['total'] + fee
