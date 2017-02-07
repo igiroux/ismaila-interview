@@ -100,8 +100,8 @@ class L1InputDataDesc(MappingSchema):
     }
 
     '''
-    articles = Articles()
-    carts = Carts()
+    articles = Articles(missing=[])
+    carts = Carts(missing=[])
 
 
 class CartTotal(MappingSchema):

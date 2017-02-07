@@ -5,8 +5,7 @@ Level 1 pricing test
 # pylint: disable=missing-docstring
 
 
-from zenmarket.algo.level1 import (
-    price, BadDataFormat, UndefinedArticleReference)
+from zenmarket.algo import level1
 import pytest
 
 
@@ -47,20 +46,24 @@ def input_data_fixture():
     }
 
 
-@pytest.fixture(name='empty_data')
-def empty_data_input_data_fixture():
+@pytest.fixture(name='invalid_data', params=[
+    {"articles": [], "carts": [{}]},
+])
+def invalid_data_input_data_fixture(request):
     '''
     Empty dict fixture
     '''
 
-    return {"articles": [], "carts": []}
+    return request.param
 
 
-@pytest.fixture(scope='module', name='invalid_data', params=[
+@pytest.fixture(scope='module', name='empty_data', params=[
     {"articles": []},
-    {"carts": []}
+    {"carts": []},
+    {},
+    {"articles": [], "carts": []},
 ])
-def invalid_data_input_data_fixture(request):
+def empty_data_input_data_fixture(request):
     '''
     Empty dict fixture
     '''
@@ -176,7 +179,7 @@ def test_price_empty_dict():
     Empty dict should return empty response {"carts": []}
     """
 
-    resp = price({})
+    resp = level1.L1CartProcessor({}).price()
     _test_response_format(resp)
     assert not resp["carts"], 'Empty dict should return empty {"carts": []}'
 
@@ -186,7 +189,7 @@ def test_price_valid_data(empty_data):
     Empty cart returns {"carts": []}
     """
 
-    resp = price(empty_data)
+    resp = level1.L1CartProcessor(empty_data).price()
     _test_response_format(resp)
     assert not resp["carts"], 'Empty data should return {"carts": []}'
 
@@ -195,19 +198,8 @@ def test_price_invalid_data(invalid_data):
     """
     Invalid data raises ValueError
     """
-    with pytest.raises(BadDataFormat):
-        price(invalid_data)
-
-
-def _test_plain_response_format(response):
-    _test_response_format(response)
-    assert response["carts"]
-    assert isinstance(response["carts"], (list, tuple))
-    for cart in response["carts"]:
-        assert isinstance(cart, dict)
-        assert cart
-        assert "id" in cart
-        assert "total" in cart
+    with pytest.raises(level1.BadDataFormat):
+        level1.L1CartProcessor(invalid_data).price()
 
 
 def test_simple_article_cart(simple_cart):
@@ -216,8 +208,7 @@ def test_simple_article_cart(simple_cart):
     :returns the price of the article
     '''
     total_price, data = simple_cart
-    resp = price(data)
-    _test_plain_response_format(resp)
+    resp = level1.L1CartProcessor(data).price()
     assert len(resp["carts"]) == 1
     cart = resp["carts"][0]
     assert cart["id"] == 10
@@ -229,8 +220,7 @@ def test_multi_article_cart(multi_cart):
     Unique article price returns the price of the article
     '''
     data, expected = multi_cart
-    resp = price(data)
-    _test_plain_response_format(resp)
+    resp = level1.L1CartProcessor(data).price()
     assert len(resp["carts"]) == len(expected["carts"])
     for ref_cart, cart in zip(expected["carts"], resp["carts"]):
         assert cart['id'] == ref_cart['id']
@@ -241,13 +231,13 @@ def test_price_corrupted_data(corrupted_data):
     """
     Invalid data raises ValueError
     """
-    with pytest.raises(BadDataFormat):
-        price(corrupted_data)
+    with pytest.raises(level1.BadDataFormat):
+        level1.L1CartProcessor(corrupted_data).price()
 
 
 def test_price_bad_article_ref(bad_article_ref_input):
     """
     Invalid data raises ValueError
     """
-    with pytest.raises(UndefinedArticleReference):
-        price(bad_article_ref_input)
+    with pytest.raises(level1.UndefinedArticleReference):
+        level1.L1CartProcessor(bad_article_ref_input).price()
